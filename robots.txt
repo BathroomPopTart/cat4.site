@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://cat4.site/sitemap.xml
+Sitemap: https://cat4consulting.com/sitemap.xml

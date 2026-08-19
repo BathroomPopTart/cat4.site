@@ -193,8 +193,9 @@
 
   function validate() {
     var ok = true;
-    ["f-name", "f-email"].forEach(function (id) {
+    ["f-name", "f-email", "f-help"].forEach(function (id) {
       var el = document.getElementById(id);
+      if (!el) return;
       var valid = el.value.trim() !== "" && el.checkValidity();
       el.setAttribute("aria-invalid", valid ? "false" : "true");
       if (!valid) ok = false;
@@ -204,27 +205,43 @@
 
   function showSuccess() {
     form.innerHTML =
-      '<div class="form-success"><h3>File received.</h3>' +
+      '<div class="form-success"><h3>Received.</h3>' +
       "<p>We'll take a look and get back to you — a human, not a sequence. " +
       "If it's urgent, email " +
       (contactEmail || "us") +
       " directly.</p></div>";
   }
 
+  // Selected option's visible label (falls back to raw value).
+  function selText(id) {
+    var el = document.getElementById(id);
+    if (!el || !el.value) return "";
+    var opt = el.options && el.options[el.selectedIndex];
+    return opt ? opt.text : el.value;
+  }
+
   function mailtoFallback() {
     // No endpoint configured: open a pre-filled email draft instead.
     var v = function (id) { return (document.getElementById(id) || {}).value || ""; };
+    var help = v("f-help");
+    var subjectLead =
+      help === "office" ? "Missed-call revenue estimate" :
+      help === "both" ? "Claims + office inquiry" :
+      help === "claims" ? "Free file review" :
+      "New inquiry";
     var body =
       "Name: " + v("f-name") + "\n" +
       "Company: " + v("f-company") + "\n" +
-      "Phone: " + v("f-phone") + "\n\n" +
-      "About the file:\n" + v("f-message") + "\n\n" +
+      "Trade: " + (selText("f-trade") || "—") + "\n" +
+      "Phone: " + v("f-phone") + "\n" +
+      "Needs help with: " + (selText("f-help") || "—") + "\n\n" +
+      "Details:\n" + v("f-message") + "\n\n" +
       (files.length
         ? "(Attaching " + files.length + " file(s) to this email.)"
         : "");
     var href =
       "mailto:" + contactEmail +
-      "?subject=" + encodeURIComponent("Free file review — " + (v("f-company") || v("f-name"))) +
+      "?subject=" + encodeURIComponent(subjectLead + " — " + (v("f-company") || v("f-name"))) +
       "&body=" + encodeURIComponent(body);
     window.location.href = href;
     setStatus(
@@ -242,7 +259,7 @@
       if ($("#f-website") && $("#f-website").value) { showSuccess(); return; }
 
       if (!validate()) {
-        setStatus("Add your name and a valid email so we can reply.", "err");
+        setStatus("Add your name, a valid email, and what you need help with.", "err");
         return;
       }
 
@@ -257,7 +274,7 @@
       var url = FORM_ENDPOINT;
       if (FORM_ENDPOINT === "netlify") {
         url = "/";
-        data.append("form-name", form.getAttribute("name") || "file-review");
+        data.append("form-name", form.getAttribute("name") || "contact");
       }
 
       fetch(url, {
