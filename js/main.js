@@ -82,7 +82,6 @@
   var dropzone = $("#dropzone");
   var fileInput = $("#f-files");
   var fileList = $("#file-list");
-  var MAX_TOTAL_MB = 20; // soft warning threshold (most form services cap ~10-25MB)
 
   // Central store so drops and browses accumulate instead of replacing.
   var files = [];
@@ -129,13 +128,13 @@
       li.appendChild(btn);
       fileList.appendChild(li);
     });
-    if (total > MAX_TOTAL_MB * 1048576) {
-      var warn = document.createElement("li");
-      warn.className = "file-warn";
-      warn.textContent =
-        "Heads up: " + fmtSize(total) + " total. Over ~" + MAX_TOTAL_MB +
-        " MB, uploads can fail — large files are best emailed or shared by link.";
-      fileList.appendChild(warn);
+    if (files.length) {
+      var note = document.createElement("li");
+      note.className = "file-note";
+      note.textContent =
+        "Files travel by email (no size games): after you hit send, we'll " +
+        "open a ready-made draft for the attachments.";
+      fileList.appendChild(note);
     }
   }
 
@@ -203,13 +202,33 @@
     return ok;
   }
 
-  function showSuccess() {
-    form.innerHTML =
-      '<div class="form-success"><h3>Received.</h3>' +
-      "<p>We'll take a look and get back to you — a human, not a sequence. " +
-      "If it's urgent, email " +
-      (contactEmail || "us") +
-      " directly.</p></div>";
+  function showSuccess(filesToSend) {
+    if (filesToSend) {
+      // Lead is in; files ride along by email (form services charge for
+      // uploads, and big claim files are better emailed anyway).
+      var draft =
+        "mailto:" + contactEmail +
+        "?subject=" + encodeURIComponent("Files: " + subjectLine()) +
+        "&body=" + encodeURIComponent(
+          "Files for the request I just sent through cat4consulting.com.\n\n" +
+          "Name: " + fieldVal("f-name") + "\n" +
+          "Company: " + fieldVal("f-company") + "\n\n" +
+          "(Attach the files to this email.)"
+        );
+      form.innerHTML =
+        '<div class="form-success"><h3>Info received.</h3>' +
+        "<p>One more step for the files: attach them to an email to <strong>" +
+        contactEmail + "</strong> so nothing gets size-limited.</p>" +
+        '<p><a class="btn btn-primary" href="' + draft + '">Email the files &rarr;</a></p>' +
+        "<p>We'll take a look and get back to you — a human, not a sequence.</p></div>";
+    } else {
+      form.innerHTML =
+        '<div class="form-success"><h3>Received.</h3>' +
+        "<p>We'll take a look and get back to you — a human, not a sequence. " +
+        "If it's urgent, email " +
+        (contactEmail || "us") +
+        " directly.</p></div>";
+    }
   }
 
   // Selected option's visible label (falls back to raw value).
@@ -264,7 +283,7 @@
       e.preventDefault();
 
       // Honeypot: silently accept bot submissions.
-      if ($("#f-website") && $("#f-website").value) { showSuccess(); return; }
+      if ($("#f-website") && $("#f-website").value) { showSuccess(false); return; }
 
       if (!validate()) {
         setStatus("Add your name, a valid email, and what you need help with.", "err");
@@ -279,6 +298,14 @@
 
       var data = new FormData(form);
       data.delete("company-website");
+      // Files never ride the form POST: the text lead always goes through,
+      // and the success screen hands the visitor a prefilled email draft
+      // for the attachments (see showSuccess).
+      var hadFiles = files.length > 0;
+      data.delete("files");
+      if (hadFiles) {
+        data.append("attachments", files.length + " file(s) — visitor will email them to " + contactEmail);
+      }
       var url = FORM_ENDPOINT;
       if (FORM_ENDPOINT === "netlify") {
         url = "/";
@@ -293,7 +320,7 @@
         headers: { Accept: "application/json" }
       })
         .then(function (res) {
-          if (res.ok) { showSuccess(); return; }
+          if (res.ok) { showSuccess(hadFiles); return; }
           // Surface the service's own reason when it gives one (e.g. a
           // plan that doesn't accept file uploads).
           return res.json().then(
@@ -312,11 +339,11 @@
           if (!detail || detail.indexOf("HTTP") === 0 || /fetch/i.test(detail)) {
             detail = "Something broke in transit.";
           }
-          var hint = files.length
-            ? " Try again without the attachments and email the files to " +
-              (contactEmail || "us") + " instead."
-            : " Email everything to " + (contactEmail || "us") + " and we're on it.";
-          setStatus(detail + hint, "err");
+          setStatus(
+            detail + " Email everything to " + (contactEmail || "us") +
+              " and we're on it.",
+            "err"
+          );
         });
     });
   }

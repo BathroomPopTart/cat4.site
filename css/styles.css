@@ -1674,6 +1674,12 @@ h2 {
   border-color: rgba(255, 196, 0, 0.5) !important;
   color: var(--yellow) !important;
 }
+.file-note {
+  border-color: rgba(255, 107, 26, 0.4) !important;
+  color: var(--text-mid) !important;
+  font-family: var(--font-body) !important;
+  font-size: 13px !important;
+}
 
 .hp-field {
   position: absolute;
