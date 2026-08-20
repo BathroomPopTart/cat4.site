@@ -72,14 +72,15 @@ via cPanel upload) also works — the site is plain files.
 The form works in three modes, controlled by `FORM_ENDPOINT` at the top of
 `js/main.js`:
 
-1. **Not configured (current state)** — submitting opens the visitor's email
-   app with a pre-filled draft to the contact address (subject line adapts to
-   the claims/office selection). Attachments must be added to the email
-   manually. Fine for soft launch, not ideal.
-2. **Formspree / Basin / any form API** — create a form, then set
-   `FORM_ENDPOINT = "https://formspree.io/f/XXXXXXXX"`. File uploads require
-   a paid Formspree plan (Basin includes them on lower tiers). This is the
-   right pairing for GitHub Pages hosting.
+1. **Empty string** — submitting opens the visitor's email app with a
+   pre-filled draft to the contact address (subject line adapts to the
+   claims/office selection). Attachments must be added to the email manually.
+2. **Formspree / Basin / any form API** *(current state — Formspree form
+   `mkjwygyn`, delivering to intake@cat4consulting.com)* — submissions POST
+   to `FORM_ENDPOINT` with a `_subject` line that adapts to the claims/office
+   selection. File uploads require a paid Formspree plan (Basin includes them
+   on lower tiers); on a plan without uploads, the error handler tells the
+   visitor to resend without attachments and email the files instead.
 3. **Netlify Forms** — only if the site is deployed on Netlify: set
    `FORM_ENDPOINT = "netlify"`. File uploads work out of the box (8 MB/file
    limit on the free tier).
@@ -94,10 +95,11 @@ swapped out.
 
 - [x] **Domain**: meta tags, sitemap, robots.txt, and CNAME all point at
       `https://cat4consulting.com/`.
-- [ ] **DNS**: add the Namecheap records above and enable GitHub Pages.
-- [ ] **Contact email**: create/forward `intake@cat4consulting.com`
-      (used in the CTA section + footer; find/replace if the address changes).
-- [ ] **Form**: pick a form backend and set `FORM_ENDPOINT` (see above).
+- [x] **DNS**: Namecheap records in place, GitHub Pages live with HTTPS.
+- [x] **Contact email**: `intake@cat4consulting.com` exists as a Google
+      Workspace alias (do not enable Namecheap email forwarding — MX stays
+      with Google).
+- [x] **Form**: Formspree endpoint configured in `js/main.js`.
 - [ ] **Phone**: no phone number is shown yet. A commented click-to-call
       block is ready in the footer (`<!-- Add click-to-call ... -->`).
 - [ ] **Case study numbers**: the three Results cards show redacted amounts

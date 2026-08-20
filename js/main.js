@@ -10,7 +10,7 @@
    *   - Netlify Forms (site deployed on Netlify):  "netlify"
    *   - Leave "" to fall back to a pre-filled email draft (no attachments).
    * ------------------------------------------------------------------ */
-  var FORM_ENDPOINT = "";
+  var FORM_ENDPOINT = "https://formspree.io/f/mkjwygyn";
 
   document.documentElement.classList.add("js");
 
@@ -220,15 +220,23 @@
     return opt ? opt.text : el.value;
   }
 
-  function mailtoFallback() {
-    // No endpoint configured: open a pre-filled email draft instead.
-    var v = function (id) { return (document.getElementById(id) || {}).value || ""; };
-    var help = v("f-help");
-    var subjectLead =
+  function fieldVal(id) {
+    return (document.getElementById(id) || {}).value || "";
+  }
+
+  function subjectLine() {
+    var help = fieldVal("f-help");
+    var lead =
       help === "office" ? "Missed-call revenue estimate" :
       help === "both" ? "Claims + office inquiry" :
       help === "claims" ? "Free file review" :
       "New inquiry";
+    return lead + " — " + (fieldVal("f-company") || fieldVal("f-name"));
+  }
+
+  function mailtoFallback() {
+    // No endpoint configured: open a pre-filled email draft instead.
+    var v = fieldVal;
     var body =
       "Name: " + v("f-name") + "\n" +
       "Company: " + v("f-company") + "\n" +
@@ -241,7 +249,7 @@
         : "");
     var href =
       "mailto:" + contactEmail +
-      "?subject=" + encodeURIComponent(subjectLead + " — " + (v("f-company") || v("f-name"))) +
+      "?subject=" + encodeURIComponent(subjectLine()) +
       "&body=" + encodeURIComponent(body);
     window.location.href = href;
     setStatus(
@@ -275,6 +283,8 @@
       if (FORM_ENDPOINT === "netlify") {
         url = "/";
         data.append("form-name", form.getAttribute("name") || "contact");
+      } else {
+        data.append("_subject", subjectLine());
       }
 
       fetch(url, {
@@ -284,15 +294,29 @@
       })
         .then(function (res) {
           if (res.ok) { showSuccess(); return; }
-          return Promise.reject(new Error("HTTP " + res.status));
-        })
-        .catch(function () {
-          submitBtn.disabled = false;
-          setStatus(
-            "Something broke in transit. Email everything to " +
-              (contactEmail || "us") + " and we're on it.",
-            "err"
+          // Surface the service's own reason when it gives one (e.g. a
+          // plan that doesn't accept file uploads).
+          return res.json().then(
+            function (j) {
+              var msg = j && j.errors && j.errors.length
+                ? j.errors.map(function (e) { return e.message || ""; }).join(" ").trim()
+                : (j && j.error) || "";
+              return Promise.reject(new Error(msg || "HTTP " + res.status));
+            },
+            function () { return Promise.reject(new Error("HTTP " + res.status)); }
           );
+        })
+        .catch(function (err) {
+          submitBtn.disabled = false;
+          var detail = err && err.message ? err.message : "";
+          if (!detail || detail.indexOf("HTTP") === 0 || /fetch/i.test(detail)) {
+            detail = "Something broke in transit.";
+          }
+          var hint = files.length
+            ? " Try again without the attachments and email the files to " +
+              (contactEmail || "us") + " instead."
+            : " Email everything to " + (contactEmail || "us") + " and we're on it.";
+          setStatus(detail + hint, "err");
         });
     });
   }
