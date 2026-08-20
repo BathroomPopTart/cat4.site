@@ -78,9 +78,11 @@ The form works in three modes, controlled by `FORM_ENDPOINT` at the top of
 2. **Formspree / Basin / any form API** *(current state — Formspree form
    `mkjwygyn`, delivering to intake@cat4consulting.com)* — submissions POST
    to `FORM_ENDPOINT` with a `_subject` line that adapts to the claims/office
-   selection. File uploads require a paid Formspree plan (Basin includes them
-   on lower tiers); on a plan without uploads, the error handler tells the
-   visitor to resend without attachments and email the files instead.
+   selection. Attachments are deliberately NOT uploaded (form services charge
+   for uploads, and real claim files are large): the text lead always goes
+   through — with an `attachments` field noting files are coming — and the
+   success screen gives the visitor a prefilled email draft to send the files
+   to the contact address. Zero leads lost to upload limits, $0/month.
 3. **Netlify Forms** — only if the site is deployed on Netlify: set
    `FORM_ENDPOINT = "netlify"`. File uploads work out of the box (8 MB/file
    limit on the free tier).
