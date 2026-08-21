@@ -184,6 +184,8 @@
   var contactEmail = contactLink
     ? contactLink.getAttribute("href").replace("mailto:", "")
     : "";
+  var bookingEl = $("[data-booking-link]");
+  var bookingUrl = bookingEl ? bookingEl.getAttribute("href") : "";
 
   function setStatus(msg, kind) {
     statusEl.textContent = msg;
@@ -227,7 +229,12 @@
         "<p>We'll take a look and get back to you — a human, not a sequence. " +
         "If it's urgent, email " +
         (contactEmail || "us") +
-        " directly.</p></div>";
+        " directly.</p>" +
+        (bookingUrl
+          ? '<p>Want to skip the wait? <a href="' + bookingUrl +
+            '" target="_blank" rel="noopener">Book a 15-minute call &rarr;</a></p>'
+          : "") +
+        "</div>";
     }
   }
 
